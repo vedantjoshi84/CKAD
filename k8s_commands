@@ -1,0 +1,285 @@
+# DOCKER 
+
+> Run an instance of the image webapp-color and publish port 8080 on the container to 8282 on the host.
+= docker run -p 8282:8080 webapp-color
+
+> docker build -t webapp-color:lite .
+To run the container in background use -d flag 
+
+# POD
+
+> kubectl explain po.spec
+
+> kubectl run nginx --image=nginx
+
+> kubectl describe pod <pod name>
+
+> kubectl get pods -o wide
+> kubectl get pods --no-headers | wc -l 
+
+> kubectl get pods -l app=kubernetes-bootcamp
+
+> kubectl get pods --show-labels
+> kubectl label pods "$POD_NAME" version=v1
+
+> kubectl delete pod webapp
+
+> kubectl delete pod webapp --force --grace-period=0
+
+> kubectl replace -f nginx.yaml --force (delete and replace) 
+
+> kubectl run redis --image=redis123 --dry-run=client -o yaml > redis-definition.yaml
+> kubectl create -f redis-definition.yaml
+
+> kubectl edit pod redis
+
+> kubectl apply -f redis-definition.yaml (if edited)
+
+> NGINX_IP=$(kubectl get pod nginx -o jsonpath='{.status.podIP}')
+> kubectl run busybox --image=busybox --env="NGINX_IP=$NGINX_IP" --rm -it --restart=Never -- sh -c 'wget -O- $NGINX_IP:80'
+
+> kubectl run nginx --image=nginx --restart=Never --env=var1=val1
+# then
+kubectl exec -it nginx -- env
+# or
+kubectl exec -it nginx -- sh -c 'echo $var1'
+
+> kubectl run busybox --image=busybox --restart=Never -o yaml --dry-run=client -- /bin/sh -c 'echo hello;sleep 3600' > pod.yaml
+
+> If pod crashed and restarted, get logs about the previous instance
+show
+kubectl logs nginx -p
+# or
+kubectl logs nginx --previous
+
+> # kubectl set image POD/POD_NAME CONTAINER_NAME=IMAGE_NAME:TAG
+kubectl set image pod/nginx nginx=nginx:1.24.0
+
+> kubectl label po nginx2 app=v2 --overwrite
+> $ kubectl get po -L app
+> kubectl get po -l app=v2
+
+# Add a new label tier=web to all pods having 'app=v2' or 'app=v1' labels
+> kubectl label po -l "app in(v1,v2)" tier=web
+
+# Remove the 'app' label from the pods
+> $ kubectl label po -l app app-
+
+# Annotate pods
+> kubectl annotate po -l "app=v2" owner=marketing
+
+> If you are not given a pod definition file, you may extract the definition to a file using the below command:
+kubectl get pod <pod-name> -o yaml > pod-definition.yaml
+Then edit the file to make the necessary changes, delete, and re-create the pod.
+
+> $ kubectl run busybox --image=busybox --restart=Never --dry-run=client -o yaml --command -- env > envpod.yaml
+
+> kubectl run redis -l tier=db --image=redis:alpine 
+
+# SERVICE
+
+> Create a service redis-service to expose the redis application within the cluster on port 6379.
+= kubectl expose pod redis --port=6379 --name redis-service
+
+> k run httpd --image=httpd:alpine --port=80 --expose
+service/httpd created
+pod/httpd created
+
+> kubectl get services -l app=kubernetes-bootcamp
+
+# REPLICASET
+
+> kubectl explain replicaset | grep VERSION
+
+> kubectl api-resources | grep replicaset
+
+> kubectl delete replicaset <replicaset-name> or kubectl delete -f <file-name>.yaml
+
+> kubectl scale rs new-replica-set --replicas=5
+> kubectl edit replicaset new-replica-set
+
+# DEPLOYMENT 
+
+> kubectl create deployment my-deployment --image=nginx --dry-run=client -o yaml > my-deployment.yaml
+
+> kubectl explain deployment | head -n3
+
+> kubectl scale deploy nginx --replicas=5
+
+
+Use --restart=Never with busybox image 
+
+# SERVICE ACCOUNT
+
+> k create serviceaccount <name>
+
+> k create token dashboard-sa
+
+> kubectl set serviceaccount deploy/web-dashboard dashboard-sa 
+
+
+RESOURCE QUOTAS
+
+> kubectl create quota myrq --hard=cpu=1,memory=1G,pods=2 --dry-run=client -o yaml
+
+**********************************************************************************************
+
+SHORTCUTS and ALIASES
+
+> alias k=kubectl
+
+> alias kn='kubectl config set-context --current --namespace '
+kn default
+
+* use nginx:alpine and curl (or busybox and wget) to check if one Pod is accessible on port 80
+
+> k run tmp --restart=Never --rm -i --image=nginx:alpine -- curl -m 5 10.12.2.15
+> kubectl run curl-pod --image=curlimages/curl -it --rm --restart=Never -- curl -v http://my-service:80
+
+OR 
+
+> k run tmp --restart=Never --rm --image=busybox -i -- wget -O- 10.12.2.15
+> kubectl run test-pod --image=busybox --rm -it --restart=Never -- wget -qO- http://my-service:80
+
+> k run tmp --restart=Never --rm -i --image=nginx:alpine -- curl -m 5 earth-3cc-web.earth:6363
+
+> k -n sun expose deployment sunny --name sun-srv --port 9999 --target-port 80
+
+CONFIGMAP
+
+> k create cm webapp-config-map --from-literal=APP_COLOR=darkblue --from-literal=APP_OTHER=disregard
+
+SECRET 
+
+> kubectl create secret generic db-secret --from-literal=DB_Host=sql01 --from-literal=DB_User=root --from-literal=DB_Password=password123
+
+LEARN TERMINAL AND VIM SHORTCUTS & KUBERNETES DOCS
+
+Kubectl important references: 
+https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands   
+https://kubernetes.io/docs/reference/kubectl/quick-reference/ 
+
+A kubectl context contains connection information to a Kubernetes cluster. Different kubectl contexts can connect to different Kubernetes clusters, or to the same cluster but using different users or different default namespaces.
+
+> k config get-contexts
+
+> k config use-context purple
+
+> alias kn='kubectl config set-context --current --namespace '
+> kn purple
+set-context --current --namespace changes the namespace of your current context
+alias (kn) for quick namespace switching within their current context.
+
+use-context switches to a different context entirely
+
+> kubectl explain job
+
+> helm list --all --all-namespaces  <==>  helm ls -A 
+
+> kubectl uncordon node01 (remove noschedule taint on the node)
+
+> k rollout status deployment/my-deployment 
+> k rollout history deployment/my-deployment  
+> kubectl rollout history deployment nginx --revision=1
+> kubectl rollout undo deployment nginx --to-revision=1
+> k rollout undo deployment/my-deployment
+
+kubectl rollout pause deployment <name>
+kubectl rollout resume deployment <name>
+
+> k set image deployment/my-deployment nginx=nginx:1.9.1  => but this will not update the underlying yaml file, take care of this 
+
+> kubectl set image deployment nginx nginx=nginx:1.17 --record
+"change-cause" field in the rollout history output. 
+We can use the --record flag to save the command used to create/update a deployment against the revision number.
+
+* INGRESS
+
+> Format - kubectl create ingress <ingress-name> --rule="host/path=service:port"
+Example - kubectl create ingress ingress-test --rule="wear.my-online-store.com/wear*=wear-service:80"
+
+
+> kubectl proxy 8001&
+# curl localhost:8001/apis/authorization.k8s.io
+Where & runs the command in the background and kubectl proxy command starts the proxy to the kubernetes API server.
+
+
+> /etc/kubernetes/manifests/kube-apiserver.yaml
+ - --runtime-config=rbac.authorization.k8s.io/v1alpha1
+
+ > kubectl-convert -f ingress-old.yaml --output-version networking.k8s.io/v1 | kubectl apply -f -  
+
+
+> kubectl config set-credentials martin --client-certificate ./martin.crt --client-key ./martin.key
+
+> kubectl config set-context developer \
+  --user=martin \
+  --cluster=kubernetes \
+  --namespace=development && \
+kubectl config use-context developer
+
+> kubectl config use-context developer
+> kubectl config set-context developer --namespace=development --cluster=kubernetes --user=martin
+
+ > Role:
+ kubectl create role developer-role \
+  --namespace=development \
+  --verb=* \
+  --resource=services,persistentvolumeclaims,pods
+
+  > Role binding
+  kubectl create rolebinding developer-rolebinding --role=developer-role -n development --user=martin
+
+
+  >  systemctl status kubelet
+
+ Logs: 
+
+controlplane ~ ✖ cd /var/log/pods/
+controlplane /var/log/pods ➜  ls
+kube-flannel_kube-flannel-ds-rhpjl_251c5081-b655-4427-8e01-26ef8bb6903e
+kube-system_etcd-controlplane_8a7f02dc476fcbcb3bd3f222f7b22783
+kube-system_kube-apiserver-controlplane_43e16d8b438fcceb1a70c30a6a44f64d
+kube-system_kube-controller-manager-controlplane_fee18f86cdb106cbdc11565a5a3a13b0
+kube-system_kube-proxy-jsvfg_f049be8a-317d-472c-9a3d-703e51319bb4
+kube-system_kube-scheduler-controlplane_db172d5b3add27a8cc689d10fd0e2f4c
+
+➜  cd /etc/kubernetes/manifests/
+
+controlplane /etc/kubernetes/manifests ➜  ls
+etcd.yaml  kube-apiserver.yaml  kube-controller-manager.yaml  kube-scheduler.yaml
+
+> docker build -t my-image:1.0 -f /path/to/Dockerfile .
+docker run -d --name my-container my-image:1.0
+docker export my-container -o /tmp/container.tar (Export Container to .tar Archive)
+gzip /tmp/container.tar  or zip /target/path/container.zip /tmp/container.tar
+
+docker save my-image:1.0 -o /target/path/image.tar (For image backup (not container))
+gzip /target/path/image.tar
+
+
+# To test pods with specific labels can only access the service, Network Policy setup
+
+# This should not work. --timeout is optional here. But it helps to get answer more quickly (in seconds vs minutes)
+> kubectl run busybox --image=busybox --rm -it --restart=Never -- wget -O- http://nginx:80 --timeout 2 
+
+# This should be fine
+> kubectl run busybox --image=busybox --rm -it --restart=Never --labels=access=granted -- wget -O- http://nginx:80 --timeout 2
+
+Learn Docker push, tag, save, build commands
+
+
+Important sources to learn and practice: 
+https://github.com/dgkanatsios/CKAD-exercises
+
+https://github.com/jamesbuckett/ckad-questions
+
+https://github.com/aleti-pavan/ckad-practice-questions/
+
+https://itnext.io/how-the-ckad-certification-has-changed-from-2021-to-2024-06aec019a35a
+
+https://killercoda.com/killer-shell-ckad/
+
+CKAD Simulator Kubernetes 1.32: https://killer.sh/attendee/cbb42295-34b4-44f8-b674-e06711d4b7f3/content
+YT playlist solution: https://www.youtube.com/watch?v=LFMp-DgJtoo&list=PLpbwBK0ptssyIgAoHR-611wt3O9wobS8T&index=1
+
